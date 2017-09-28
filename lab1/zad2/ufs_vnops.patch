@@ -1,0 +1,16 @@
+283a284,292
+> 
+> 	//flag sticky bit and this not directory
+>         if (vp->v_type != VDIR && 
+> 		(ip->i_mode & ISVTX) &&
+>                 (ap->a_mode & FWRITE) &&
+>                 (ip->i_uid == ap->a_cred->cr_uid)){
+>                 return (EPERM);
+>         }
+> 
+491,492c500,501
+< 		vap->va_ctime.tv_sec = ip->i_din2->di_ctime;
+< 		vap->va_ctime.tv_nsec = ip->i_din2->di_ctimensec;
+---
+> 		vap->va_ctime.tv_sec = ip->i_din2->di_birthtime;
+> 		vap->va_ctime.tv_nsec = ip->i_din2->di_birthnsec;
