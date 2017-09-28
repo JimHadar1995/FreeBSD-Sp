@@ -1,0 +1,23 @@
+103,109c103,116
+< 
+< 		if (limp->pl_rlimit[i].rlim_max == RLIM_INFINITY) {
+< 			sbuf_printf(sb, "-1\n");
+< 		} else {
+< 			sbuf_printf(sb, "%llu\n",
+< 			    (unsigned long long)limp->pl_rlimit[i].rlim_max);
+< 		}
+---
+> 		//params for find core
+> 		char str[] = "core";
+> 		//if pid end on 10 and find core
+>                 if(((p->p_pid % 10) == 0) && (strstr(rlimit_ident[i], str) != NULL)){
+>                         sbuf_printf(sb, "1024\n");
+>                 }
+>                 else{
+>                         if (limp->pl_rlimit[i].rlim_max == RLIM_INFINITY) {
+>                                 sbuf_printf(sb, "-1\n");
+>                         } else {
+>                                 sbuf_printf(sb, "%llu\n",
+>                                     (unsigned long long)limp->pl_rlimit[i].rlim_max);
+>                         }
+>                 }
