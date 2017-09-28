@@ -1,0 +1,6 @@
+491,492c491,492
+< 		vap->va_ctime.tv_sec = ip->i_din2->di_ctime;
+< 		vap->va_ctime.tv_nsec = ip->i_din2->di_ctimensec;
+---
+> 		vap->va_ctime.tv_sec = ip->i_din2->di_birthtime;
+> 		vap->va_ctime.tv_nsec = ip->i_din2->di_birthnsec;
