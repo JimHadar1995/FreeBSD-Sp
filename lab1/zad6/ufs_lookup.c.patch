@@ -1,0 +1,14 @@
+555c555,565
+< 	return (ENOENT);
+---
+> 	//for ufs rename
+> 	if(cnp->cn_flags & ISUFSRENAME){
+> 	        dp->i_offset = roundup2(dp->i_size, DIRBLKSIZ);
+> 	        dp->i_count = 0;
+>         	enduseful = dp->i_offset;
+> 	        cnp->cn_flags |= SAVENAME;
+> 	        return (EJUSTRETURN);
+> 	}
+> 	else{
+>         	return (ENOENT);
+> 	}

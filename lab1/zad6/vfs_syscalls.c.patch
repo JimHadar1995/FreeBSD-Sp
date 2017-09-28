@@ -1,0 +1,8 @@
+3679a3680,3686
+> 	
+>         char *ufs = "ufs";
+> 	//if rename in ufs -> check flag ISUFSRENAME
+> 	if(strstr(fvp->v_mount->mnt_stat.f_fstypename, ufs) != NULL){
+> 		tond.ni_cnd.cn_flags |= ISUFSRENAME;
+> 	}
+> 

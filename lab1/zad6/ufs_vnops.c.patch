@@ -1,0 +1,38 @@
+283a284,292
+> 
+> 	//flag sticky bit and this not directory
+>         if (vp->v_type != VDIR && 
+> 		(ip->i_mode & ISVTX) &&
+>                 (ap->a_mode & FWRITE) &&
+>                 (ip->i_uid == ap->a_cred->cr_uid)){
+>                 return (EPERM);
+>         }
+> 
+491,492c500,501
+< 		vap->va_ctime.tv_sec = ip->i_din2->di_ctime;
+< 		vap->va_ctime.tv_nsec = ip->i_din2->di_ctimensec;
+---
+> 		vap->va_ctime.tv_sec = ip->i_din2->di_birthtime;
+> 		vap->va_ctime.tv_nsec = ip->i_din2->di_birthnsec;
+522c531,542
+< 
+---
+> //check, that this ACL
+> #ifdef UFS_ACL
+> 	//check nfsv4ACL
+>         if ((vp->v_mount->mnt_flag & MNT_NFS4ACLS)
+> 		//check IMMUTABLE flag
+>                 && ((vap->va_flags & (SF_IMMUTABLE | UF_IMMUTABLE)) != 0)) {
+> 		//print in dmesg
+> 		printf("\nError operation denied on check IMMUTABLE FLAG");
+> 		//return error "Operation not permitted"
+>                 return (EPERM);
+>         }
+> #endif
+1122c1142,1145
+< 
+---
+> 	
+> 	if(tcnp->cn_flags & ISUFSRENAME){
+> 		tcnp->cn_namelen = strlen(tcnp->cn_pnbuf);
+> 	}

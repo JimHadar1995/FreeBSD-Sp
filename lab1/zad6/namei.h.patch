@@ -1,0 +1,2 @@
+133a134
+> #define ISUFSRENAME     0x00000001 /* mask for ufs rename */
