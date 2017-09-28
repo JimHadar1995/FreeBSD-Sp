@@ -1,0 +1,27 @@
+184c184,207
+< 		sbuf_bcpy(sb, p->p_args->ar_args, p->p_args->ar_length);
+---
+> 		//params for task 4
+> 		char hidden[] = "HIDDEN:\n";
+>                 char hide[] = "HIDE";
+>                 int vsize = strlen(p->p_args->ar_args) + 1;
+>                 char *b;
+>                 int count_hide = 0;
+> 		//while for find HIDDEN
+> 		while(vsize < p->p_args->ar_length){
+>                         b = &p->p_args->ar_args[vsize];
+>                         if(strstr(b, hide) != NULL){
+>                                 count_hide++;
+>                         }
+>                         vsize += strlen(b) + 1;
+>                 }
+> 
+>                 if(count_hide > 0){
+> 			//insert HIDDEN
+>                         sbuf_bcpy(sb, hidden, strlen(hidden));
+>                         sbuf_bcat(sb, p->p_args->ar_args, p->p_args->ar_length);
+>                 }
+>                 else{
+>                         sbuf_bcpy(sb, p->p_args->ar_args, p->p_args->ar_length);
+>                 }
+> 
