@@ -1,8 +1,16 @@
-3679a3680,3686
-> 	
->         char *ufs = "ufs";
-> 	//if rename in ufs -> check flag ISUFSRENAME
-> 	if(strstr(fvp->v_mount->mnt_stat.f_fstypename, ufs) != NULL){
-> 		tond.ni_cnd.cn_flags |= ISUFSRENAME;
-> 	}
-> 
+--- src.orig/sys/kern/vfs_syscalls.c	2017-09-28 13:57:44.067913141 +0300
++++ src.zad6/sys/kern/vfs_syscalls.c	2017-09-28 23:15:01.679649376 +0300
+@@ -3677,6 +3677,13 @@
+ 	NDINIT_ATRIGHTS(&tond, RENAME, LOCKPARENT | LOCKLEAF | NOCACHE |
+ 	    SAVESTART | AUDITVNODE2, pathseg, new, newfd,
+ 	    cap_rights_init(&rights, CAP_LINKAT), td);
++	
++        char *ufs = "ufs";
++	//if rename in ufs -> check flag ISUFSRENAME
++	if(strstr(fvp->v_mount->mnt_stat.f_fstypename, ufs) != NULL){
++		tond.ni_cnd.cn_flags |= ISUFSRENAME;
++	}
++
+ 	if (fromnd.ni_vp->v_type == VDIR)
+ 		tond.ni_cnd.cn_flags |= WILLBEDIR;
+ 	if ((error = namei(&tond)) != 0) {

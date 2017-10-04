@@ -1,14 +1,21 @@
-555c555,565
-< 	return (ENOENT);
----
-> 	//for ufs rename
-> 	if(cnp->cn_flags & ISUFSRENAME){
-> 	        dp->i_offset = roundup2(dp->i_size, DIRBLKSIZ);
-> 	        dp->i_count = 0;
->         	enduseful = dp->i_offset;
-> 	        cnp->cn_flags |= SAVENAME;
-> 	        return (EJUSTRETURN);
-> 	}
-> 	else{
->         	return (ENOENT);
-> 	}
+--- src.orig/sys/ufs/ufs/ufs_lookup.c	2017-09-28 13:57:48.081919772 +0300
++++ src.zad6/sys/ufs/ufs/ufs_lookup.c	2017-09-28 23:15:07.675985502 +0300
+@@ -552,7 +552,17 @@
+ 	 */
+ 	if ((cnp->cn_flags & MAKEENTRY) != 0)
+ 		cache_enter(vdp, NULL, cnp);
+-	return (ENOENT);
++	//for ufs rename
++	if(cnp->cn_flags & ISUFSRENAME){
++	        dp->i_offset = roundup2(dp->i_size, DIRBLKSIZ);
++	        dp->i_count = 0;
++        	enduseful = dp->i_offset;
++	        cnp->cn_flags |= SAVENAME;
++	        return (EJUSTRETURN);
++	}
++	else{
++        	return (ENOENT);
++	}
+ 
+ found:
+ 	if (dd_ino != NULL)

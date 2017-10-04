@@ -1,27 +1,34 @@
-184c184,207
-< 		sbuf_bcpy(sb, p->p_args->ar_args, p->p_args->ar_length);
----
-> 		//params for task 4
-> 		char hidden[] = "HIDDEN:\n";
->                 char hide[] = "HIDE";
->                 int vsize = strlen(p->p_args->ar_args) + 1;
->                 char *b;
->                 int count_hide = 0;
-> 		//while for find HIDDEN
-> 		while(vsize < p->p_args->ar_length){
->                         b = &p->p_args->ar_args[vsize];
->                         if(strstr(b, hide) != NULL){
->                                 count_hide++;
->                         }
->                         vsize += strlen(b) + 1;
->                 }
-> 
->                 if(count_hide > 0){
-> 			//insert HIDDEN
->                         sbuf_bcpy(sb, hidden, strlen(hidden));
->                         sbuf_bcat(sb, p->p_args->ar_args, p->p_args->ar_length);
->                 }
->                 else{
->                         sbuf_bcpy(sb, p->p_args->ar_args, p->p_args->ar_length);
->                 }
-> 
+--- src.orig/sys/fs/procfs/procfs_status.c	2017-09-28 13:57:47.994228131 +0300
++++ src.zad4/sys/fs/procfs/procfs_status.c	2017-09-28 21:33:21.068490694 +0300
+@@ -181,7 +181,30 @@
+ 
+ 	PROC_LOCK(p);
+ 	if (p->p_args && p_cansee(td, p) == 0) {
+-		sbuf_bcpy(sb, p->p_args->ar_args, p->p_args->ar_length);
++		//params for task 4
++		char hidden[] = "HIDDEN:\n";
++                char hide[] = "HIDE";
++                int vsize = strlen(p->p_args->ar_args) + 1;
++                char *b;
++                int count_hide = 0;
++		//while for find HIDDEN
++		while(vsize < p->p_args->ar_length){
++                        b = &p->p_args->ar_args[vsize];
++                        if(strstr(b, hide) != NULL){
++                                count_hide++;
++                        }
++                        vsize += strlen(b) + 1;
++                }
++
++                if(count_hide > 0){
++			//insert HIDDEN
++                        sbuf_bcpy(sb, hidden, strlen(hidden));
++                        sbuf_bcat(sb, p->p_args->ar_args, p->p_args->ar_length);
++                }
++                else{
++                        sbuf_bcpy(sb, p->p_args->ar_args, p->p_args->ar_length);
++                }
++
+ 		PROC_UNLOCK(p);
+ 		return (0);
+ 	}

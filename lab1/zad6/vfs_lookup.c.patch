@@ -1,35 +1,40 @@
-284,286c284,287
-< 		if (*(cnp->cn_nameptr) == '/') {
-< 			vrele(dp);
-< 			if (ndp->ni_strictrelative != 0) {
----
-> 		if(!(cnp->cn_flags & ISUFSRENAME)){
-> 			if (*(cnp->cn_nameptr) == '/') {
-> 				vrele(dp);
-> 				if (ndp->ni_strictrelative != 0) {
-288,289c289,290
-< 				if (KTRPOINT(curthread, KTR_CAPFAIL))
-< 					ktrcapfail(CAPFAIL_LOOKUP, NULL, NULL);
----
-> 					if (KTRPOINT(curthread, KTR_CAPFAIL))
-> 						ktrcapfail(CAPFAIL_LOOKUP, NULL, NULL);
-291,296c292,300
-< 				namei_cleanup_cnp(cnp);
-< 				return (ENOTCAPABLE);
-< 			}
-< 			while (*(cnp->cn_nameptr) == '/') {
-< 				cnp->cn_nameptr++;
-< 				ndp->ni_pathlen--;
----
-> 					namei_cleanup_cnp(cnp);
-> 					return (ENOTCAPABLE);
-> 				}
-> 				while (*(cnp->cn_nameptr) == '/') {
-> 					cnp->cn_nameptr++;
-> 					ndp->ni_pathlen--;
-> 				}
-> 				dp = ndp->ni_rootdir;
-> 				VREF(dp);
-298,299d301
-< 			dp = ndp->ni_rootdir;
-< 			VREF(dp);
+--- src.orig/sys/kern/vfs_lookup.c	2017-09-28 13:57:43.537563239 +0300
++++ src.zad6/sys/kern/vfs_lookup.c	2017-09-28 23:15:01.311987843 +0300
+@@ -281,22 +281,24 @@
+ 		 * Done at start of translation and after symbolic link.
+ 		 */
+ 		cnp->cn_nameptr = cnp->cn_pnbuf;
+-		if (*(cnp->cn_nameptr) == '/') {
+-			vrele(dp);
+-			if (ndp->ni_strictrelative != 0) {
++		if(!(cnp->cn_flags & ISUFSRENAME)){
++			if (*(cnp->cn_nameptr) == '/') {
++				vrele(dp);
++				if (ndp->ni_strictrelative != 0) {
+ #ifdef KTRACE
+-				if (KTRPOINT(curthread, KTR_CAPFAIL))
+-					ktrcapfail(CAPFAIL_LOOKUP, NULL, NULL);
++					if (KTRPOINT(curthread, KTR_CAPFAIL))
++						ktrcapfail(CAPFAIL_LOOKUP, NULL, NULL);
+ #endif
+-				namei_cleanup_cnp(cnp);
+-				return (ENOTCAPABLE);
+-			}
+-			while (*(cnp->cn_nameptr) == '/') {
+-				cnp->cn_nameptr++;
+-				ndp->ni_pathlen--;
++					namei_cleanup_cnp(cnp);
++					return (ENOTCAPABLE);
++				}
++				while (*(cnp->cn_nameptr) == '/') {
++					cnp->cn_nameptr++;
++					ndp->ni_pathlen--;
++				}
++				dp = ndp->ni_rootdir;
++				VREF(dp);
+ 			}
+-			dp = ndp->ni_rootdir;
+-			VREF(dp);
+ 		}
+ 		ndp->ni_startdir = dp;
+ 		error = lookup(ndp);

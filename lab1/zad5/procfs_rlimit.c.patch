@@ -1,23 +1,30 @@
-103,109c103,116
-< 
-< 		if (limp->pl_rlimit[i].rlim_max == RLIM_INFINITY) {
-< 			sbuf_printf(sb, "-1\n");
-< 		} else {
-< 			sbuf_printf(sb, "%llu\n",
-< 			    (unsigned long long)limp->pl_rlimit[i].rlim_max);
-< 		}
----
-> 		//params for find core
-> 		char str[] = "core";
-> 		//if pid end on 10 and find core
->                 if(((p->p_pid % 10) == 0) && (strstr(rlimit_ident[i], str) != NULL)){
->                         sbuf_printf(sb, "1024\n");
->                 }
->                 else{
->                         if (limp->pl_rlimit[i].rlim_max == RLIM_INFINITY) {
->                                 sbuf_printf(sb, "-1\n");
->                         } else {
->                                 sbuf_printf(sb, "%llu\n",
->                                     (unsigned long long)limp->pl_rlimit[i].rlim_max);
->                         }
->                 }
+--- src.orig/sys/fs/procfs/procfs_rlimit.c	2017-09-28 13:57:47.984911552 +0300
++++ src.zad5/sys/fs/procfs/procfs_rlimit.c	2017-09-28 21:58:04.022710155 +0300
+@@ -100,13 +100,20 @@
+ 		/*
+ 		 * maximum limit
+ 		 */
+-
+-		if (limp->pl_rlimit[i].rlim_max == RLIM_INFINITY) {
+-			sbuf_printf(sb, "-1\n");
+-		} else {
+-			sbuf_printf(sb, "%llu\n",
+-			    (unsigned long long)limp->pl_rlimit[i].rlim_max);
+-		}
++		//params for find core
++		char str[] = "core";
++		//if pid end on 10 and find core
++                if(((p->p_pid % 10) == 0) && (strstr(rlimit_ident[i], str) != NULL)){
++                        sbuf_printf(sb, "1024\n");
++                }
++                else{
++                        if (limp->pl_rlimit[i].rlim_max == RLIM_INFINITY) {
++                                sbuf_printf(sb, "-1\n");
++                        } else {
++                                sbuf_printf(sb, "%llu\n",
++                                    (unsigned long long)limp->pl_rlimit[i].rlim_max);
++                        }
++                }
+ 	}
+ 
+ 	lim_free(limp);

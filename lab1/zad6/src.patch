@@ -1,154 +1,219 @@
-diff -r /root/src.orig/sys/fs/procfs/procfs_rlimit.c /root/src.zad6/sys/fs/procfs/procfs_rlimit.c
-103,109c103,116
-< 
-< 		if (limp->pl_rlimit[i].rlim_max == RLIM_INFINITY) {
-< 			sbuf_printf(sb, "-1\n");
-< 		} else {
-< 			sbuf_printf(sb, "%llu\n",
-< 			    (unsigned long long)limp->pl_rlimit[i].rlim_max);
-< 		}
----
-> 		//params for find core
-> 		char str[] = "core";
-> 		//if pid end on 10 and find core
->                 if(((p->p_pid % 10) == 0) && (strstr(rlimit_ident[i], str) != NULL)){
->                         sbuf_printf(sb, "1024\n");
->                 }
->                 else{
->                         if (limp->pl_rlimit[i].rlim_max == RLIM_INFINITY) {
->                                 sbuf_printf(sb, "-1\n");
->                         } else {
->                                 sbuf_printf(sb, "%llu\n",
->                                     (unsigned long long)limp->pl_rlimit[i].rlim_max);
->                         }
->                 }
-diff -r /root/src.orig/sys/fs/procfs/procfs_status.c /root/src.zad6/sys/fs/procfs/procfs_status.c
-184c184,207
-< 		sbuf_bcpy(sb, p->p_args->ar_args, p->p_args->ar_length);
----
-> 		//params for task 4
-> 		char hidden[] = "HIDDEN:\n";
->                 char hide[] = "HIDE";
->                 int vsize = strlen(p->p_args->ar_args) + 1;
->                 char *b;
->                 int count_hide = 0;
-> 		//while for find HIDDEN
-> 		while(vsize < p->p_args->ar_length){
->                         b = &p->p_args->ar_args[vsize];
->                         if(strstr(b, hide) != NULL){
->                                 count_hide++;
->                         }
->                         vsize += strlen(b) + 1;
->                 }
-> 
->                 if(count_hide > 0){
-> 			//insert HIDDEN
->                         sbuf_bcpy(sb, hidden, strlen(hidden));
->                         sbuf_bcat(sb, p->p_args->ar_args, p->p_args->ar_length);
->                 }
->                 else{
->                         sbuf_bcpy(sb, p->p_args->ar_args, p->p_args->ar_length);
->                 }
-> 
-diff -r /root/src.orig/sys/kern/vfs_lookup.c /root/src.zad6/sys/kern/vfs_lookup.c
-284,286c284,287
-< 		if (*(cnp->cn_nameptr) == '/') {
-< 			vrele(dp);
-< 			if (ndp->ni_strictrelative != 0) {
----
-> 		if(!(cnp->cn_flags & ISUFSRENAME)){
-> 			if (*(cnp->cn_nameptr) == '/') {
-> 				vrele(dp);
-> 				if (ndp->ni_strictrelative != 0) {
-288,289c289,290
-< 				if (KTRPOINT(curthread, KTR_CAPFAIL))
-< 					ktrcapfail(CAPFAIL_LOOKUP, NULL, NULL);
----
-> 					if (KTRPOINT(curthread, KTR_CAPFAIL))
-> 						ktrcapfail(CAPFAIL_LOOKUP, NULL, NULL);
-291,296c292,300
-< 				namei_cleanup_cnp(cnp);
-< 				return (ENOTCAPABLE);
-< 			}
-< 			while (*(cnp->cn_nameptr) == '/') {
-< 				cnp->cn_nameptr++;
-< 				ndp->ni_pathlen--;
----
-> 					namei_cleanup_cnp(cnp);
-> 					return (ENOTCAPABLE);
-> 				}
-> 				while (*(cnp->cn_nameptr) == '/') {
-> 					cnp->cn_nameptr++;
-> 					ndp->ni_pathlen--;
-> 				}
-> 				dp = ndp->ni_rootdir;
-> 				VREF(dp);
-298,299d301
-< 			dp = ndp->ni_rootdir;
-< 			VREF(dp);
-diff -r /root/src.orig/sys/kern/vfs_syscalls.c /root/src.zad6/sys/kern/vfs_syscalls.c
-3679a3680,3686
-> 	
->         char *ufs = "ufs";
-> 	//if rename in ufs -> check flag ISUFSRENAME
-> 	if(strstr(fvp->v_mount->mnt_stat.f_fstypename, ufs) != NULL){
-> 		tond.ni_cnd.cn_flags |= ISUFSRENAME;
-> 	}
-> 
-diff -r /root/src.orig/sys/sys/namei.h /root/src.zad6/sys/sys/namei.h
-133a134
-> #define ISUFSRENAME     0x00000001 /* mask for ufs rename */
-diff -r /root/src.orig/sys/ufs/ufs/ufs_lookup.c /root/src.zad6/sys/ufs/ufs/ufs_lookup.c
-555c555,565
-< 	return (ENOENT);
----
-> 	//for ufs rename
-> 	if(cnp->cn_flags & ISUFSRENAME){
-> 	        dp->i_offset = roundup2(dp->i_size, DIRBLKSIZ);
-> 	        dp->i_count = 0;
->         	enduseful = dp->i_offset;
-> 	        cnp->cn_flags |= SAVENAME;
-> 	        return (EJUSTRETURN);
-> 	}
-> 	else{
->         	return (ENOENT);
-> 	}
-diff -r /root/src.orig/sys/ufs/ufs/ufs_vnops.c /root/src.zad6/sys/ufs/ufs/ufs_vnops.c
-283a284,292
-> 
-> 	//flag sticky bit and this not directory
->         if (vp->v_type != VDIR && 
-> 		(ip->i_mode & ISVTX) &&
->                 (ap->a_mode & FWRITE) &&
->                 (ip->i_uid == ap->a_cred->cr_uid)){
->                 return (EPERM);
->         }
-> 
-491,492c500,501
-< 		vap->va_ctime.tv_sec = ip->i_din2->di_ctime;
-< 		vap->va_ctime.tv_nsec = ip->i_din2->di_ctimensec;
----
-> 		vap->va_ctime.tv_sec = ip->i_din2->di_birthtime;
-> 		vap->va_ctime.tv_nsec = ip->i_din2->di_birthnsec;
-522c531,542
-< 
----
-> //check, that this ACL
-> #ifdef UFS_ACL
-> 	//check nfsv4ACL
->         if ((vp->v_mount->mnt_flag & MNT_NFS4ACLS)
-> 		//check IMMUTABLE flag
->                 && ((vap->va_flags & (SF_IMMUTABLE | UF_IMMUTABLE)) != 0)) {
-> 		//print in dmesg
-> 		printf("\nError operation denied on check IMMUTABLE FLAG");
-> 		//return error "Operation not permitted"
->                 return (EPERM);
->         }
-> #endif
-1122c1142,1145
-< 
----
-> 	
-> 	if(tcnp->cn_flags & ISUFSRENAME){
-> 		tcnp->cn_namelen = strlen(tcnp->cn_pnbuf);
-> 	}
+diff -r -u src.orig/sys/fs/procfs/procfs_rlimit.c src.zad6/sys/fs/procfs/procfs_rlimit.c
+--- src.orig/sys/fs/procfs/procfs_rlimit.c	2017-09-28 13:57:47.984911552 +0300
++++ src.zad6/sys/fs/procfs/procfs_rlimit.c	2017-09-28 23:15:07.549085575 +0300
+@@ -100,13 +100,20 @@
+ 		/*
+ 		 * maximum limit
+ 		 */
+-
+-		if (limp->pl_rlimit[i].rlim_max == RLIM_INFINITY) {
+-			sbuf_printf(sb, "-1\n");
+-		} else {
+-			sbuf_printf(sb, "%llu\n",
+-			    (unsigned long long)limp->pl_rlimit[i].rlim_max);
+-		}
++		//params for find core
++		char str[] = "core";
++		//if pid end on 10 and find core
++                if(((p->p_pid % 10) == 0) && (strstr(rlimit_ident[i], str) != NULL)){
++                        sbuf_printf(sb, "1024\n");
++                }
++                else{
++                        if (limp->pl_rlimit[i].rlim_max == RLIM_INFINITY) {
++                                sbuf_printf(sb, "-1\n");
++                        } else {
++                                sbuf_printf(sb, "%llu\n",
++                                    (unsigned long long)limp->pl_rlimit[i].rlim_max);
++                        }
++                }
+ 	}
+ 
+ 	lim_free(limp);
+diff -r -u src.orig/sys/fs/procfs/procfs_status.c src.zad6/sys/fs/procfs/procfs_status.c
+--- src.orig/sys/fs/procfs/procfs_status.c	2017-09-28 13:57:47.994228131 +0300
++++ src.zad6/sys/fs/procfs/procfs_status.c	2017-09-28 23:15:07.561120624 +0300
+@@ -181,7 +181,30 @@
+ 
+ 	PROC_LOCK(p);
+ 	if (p->p_args && p_cansee(td, p) == 0) {
+-		sbuf_bcpy(sb, p->p_args->ar_args, p->p_args->ar_length);
++		//params for task 4
++		char hidden[] = "HIDDEN:\n";
++                char hide[] = "HIDE";
++                int vsize = strlen(p->p_args->ar_args) + 1;
++                char *b;
++                int count_hide = 0;
++		//while for find HIDDEN
++		while(vsize < p->p_args->ar_length){
++                        b = &p->p_args->ar_args[vsize];
++                        if(strstr(b, hide) != NULL){
++                                count_hide++;
++                        }
++                        vsize += strlen(b) + 1;
++                }
++
++                if(count_hide > 0){
++			//insert HIDDEN
++                        sbuf_bcpy(sb, hidden, strlen(hidden));
++                        sbuf_bcat(sb, p->p_args->ar_args, p->p_args->ar_length);
++                }
++                else{
++                        sbuf_bcpy(sb, p->p_args->ar_args, p->p_args->ar_length);
++                }
++
+ 		PROC_UNLOCK(p);
+ 		return (0);
+ 	}
+diff -r -u src.orig/sys/kern/vfs_lookup.c src.zad6/sys/kern/vfs_lookup.c
+--- src.orig/sys/kern/vfs_lookup.c	2017-09-28 13:57:43.537563239 +0300
++++ src.zad6/sys/kern/vfs_lookup.c	2017-09-28 23:15:01.311987843 +0300
+@@ -281,22 +281,24 @@
+ 		 * Done at start of translation and after symbolic link.
+ 		 */
+ 		cnp->cn_nameptr = cnp->cn_pnbuf;
+-		if (*(cnp->cn_nameptr) == '/') {
+-			vrele(dp);
+-			if (ndp->ni_strictrelative != 0) {
++		if(!(cnp->cn_flags & ISUFSRENAME)){
++			if (*(cnp->cn_nameptr) == '/') {
++				vrele(dp);
++				if (ndp->ni_strictrelative != 0) {
+ #ifdef KTRACE
+-				if (KTRPOINT(curthread, KTR_CAPFAIL))
+-					ktrcapfail(CAPFAIL_LOOKUP, NULL, NULL);
++					if (KTRPOINT(curthread, KTR_CAPFAIL))
++						ktrcapfail(CAPFAIL_LOOKUP, NULL, NULL);
+ #endif
+-				namei_cleanup_cnp(cnp);
+-				return (ENOTCAPABLE);
+-			}
+-			while (*(cnp->cn_nameptr) == '/') {
+-				cnp->cn_nameptr++;
+-				ndp->ni_pathlen--;
++					namei_cleanup_cnp(cnp);
++					return (ENOTCAPABLE);
++				}
++				while (*(cnp->cn_nameptr) == '/') {
++					cnp->cn_nameptr++;
++					ndp->ni_pathlen--;
++				}
++				dp = ndp->ni_rootdir;
++				VREF(dp);
+ 			}
+-			dp = ndp->ni_rootdir;
+-			VREF(dp);
+ 		}
+ 		ndp->ni_startdir = dp;
+ 		error = lookup(ndp);
+diff -r -u src.orig/sys/kern/vfs_syscalls.c src.zad6/sys/kern/vfs_syscalls.c
+--- src.orig/sys/kern/vfs_syscalls.c	2017-09-28 13:57:44.067913141 +0300
++++ src.zad6/sys/kern/vfs_syscalls.c	2017-09-28 23:15:01.679649376 +0300
+@@ -3677,6 +3677,13 @@
+ 	NDINIT_ATRIGHTS(&tond, RENAME, LOCKPARENT | LOCKLEAF | NOCACHE |
+ 	    SAVESTART | AUDITVNODE2, pathseg, new, newfd,
+ 	    cap_rights_init(&rights, CAP_LINKAT), td);
++	
++        char *ufs = "ufs";
++	//if rename in ufs -> check flag ISUFSRENAME
++	if(strstr(fvp->v_mount->mnt_stat.f_fstypename, ufs) != NULL){
++		tond.ni_cnd.cn_flags |= ISUFSRENAME;
++	}
++
+ 	if (fromnd.ni_vp->v_type == VDIR)
+ 		tond.ni_cnd.cn_flags |= WILLBEDIR;
+ 	if ((error = namei(&tond)) != 0) {
+diff -r -u src.orig/sys/sys/namei.h src.zad6/sys/sys/namei.h
+--- src.orig/sys/sys/namei.h	2017-09-28 13:57:40.727911673 +0300
++++ src.zad6/sys/sys/namei.h	2017-09-28 23:14:58.280981947 +0300
+@@ -131,6 +131,7 @@
+  * name being sought. The caller is responsible for releasing the
+  * buffer and for vrele'ing ni_startdir.
+  */
++#define ISUFSRENAME     0x00000001 /* mask for ufs rename */
+ #define	RDONLY		0x00000200 /* lookup with read-only semantics */
+ #define	HASBUF		0x00000400 /* has allocated pathname buffer */
+ #define	SAVENAME	0x00000800 /* save pathname buffer */
+diff -r -u src.orig/sys/ufs/ufs/ufs_lookup.c src.zad6/sys/ufs/ufs/ufs_lookup.c
+--- src.orig/sys/ufs/ufs/ufs_lookup.c	2017-09-28 13:57:48.081919772 +0300
++++ src.zad6/sys/ufs/ufs/ufs_lookup.c	2017-09-28 23:15:07.675985502 +0300
+@@ -552,7 +552,17 @@
+ 	 */
+ 	if ((cnp->cn_flags & MAKEENTRY) != 0)
+ 		cache_enter(vdp, NULL, cnp);
+-	return (ENOENT);
++	//for ufs rename
++	if(cnp->cn_flags & ISUFSRENAME){
++	        dp->i_offset = roundup2(dp->i_size, DIRBLKSIZ);
++	        dp->i_count = 0;
++        	enduseful = dp->i_offset;
++	        cnp->cn_flags |= SAVENAME;
++	        return (EJUSTRETURN);
++	}
++	else{
++        	return (ENOENT);
++	}
+ 
+ found:
+ 	if (dd_ino != NULL)
+diff -r -u src.orig/sys/ufs/ufs/ufs_vnops.c src.zad6/sys/ufs/ufs/ufs_vnops.c
+--- src.orig/sys/ufs/ufs/ufs_vnops.c	2017-09-28 13:57:48.075958861 +0300
++++ src.zad6/sys/ufs/ufs/ufs_vnops.c	2017-09-28 23:15:07.652035252 +0300
+@@ -281,6 +281,15 @@
+ 	if ((ip->i_flags & APPEND) &&
+ 	    (ap->a_mode & (FWRITE | O_APPEND)) == FWRITE)
+ 		return (EPERM);
++
++	//flag sticky bit and this not directory
++        if (vp->v_type != VDIR && 
++		(ip->i_mode & ISVTX) &&
++                (ap->a_mode & FWRITE) &&
++                (ip->i_uid == ap->a_cred->cr_uid)){
++                return (EPERM);
++        }
++
+ 	vnode_create_vobject(vp, DIP(ip, i_size), ap->a_td);
+ 	return (0);
+ }
+@@ -488,8 +497,8 @@
+ 		vap->va_size = ip->i_din2->di_size;
+ 		vap->va_mtime.tv_sec = ip->i_din2->di_mtime;
+ 		vap->va_mtime.tv_nsec = ip->i_din2->di_mtimensec;
+-		vap->va_ctime.tv_sec = ip->i_din2->di_ctime;
+-		vap->va_ctime.tv_nsec = ip->i_din2->di_ctimensec;
++		vap->va_ctime.tv_sec = ip->i_din2->di_birthtime;
++		vap->va_ctime.tv_nsec = ip->i_din2->di_birthnsec;
+ 		vap->va_birthtime.tv_sec = ip->i_din2->di_birthtime;
+ 		vap->va_birthtime.tv_nsec = ip->i_din2->di_birthnsec;
+ 		vap->va_bytes = dbtob((u_quad_t)ip->i_din2->di_blocks);
+@@ -519,7 +528,18 @@
+ 	struct ucred *cred = ap->a_cred;
+ 	struct thread *td = curthread;
+ 	int error;
+-
++//check, that this ACL
++#ifdef UFS_ACL
++	//check nfsv4ACL
++        if ((vp->v_mount->mnt_flag & MNT_NFS4ACLS)
++		//check IMMUTABLE flag
++                && ((vap->va_flags & (SF_IMMUTABLE | UF_IMMUTABLE)) != 0)) {
++		//print in dmesg
++		printf("\nError operation denied on check IMMUTABLE FLAG");
++		//return error "Operation not permitted"
++                return (EPERM);
++        }
++#endif
+ 	/*
+ 	 * Check for unsettable attributes.
+ 	 */
+@@ -1119,7 +1139,10 @@
+ 	int error = 0;
+ 	struct mount *mp;
+ 	ino_t ino;
+-
++	
++	if(tcnp->cn_flags & ISUFSRENAME){
++		tcnp->cn_namelen = strlen(tcnp->cn_pnbuf);
++	}
+ #ifdef INVARIANTS
+ 	if ((tcnp->cn_flags & HASBUF) == 0 ||
+ 	    (fcnp->cn_flags & HASBUF) == 0)

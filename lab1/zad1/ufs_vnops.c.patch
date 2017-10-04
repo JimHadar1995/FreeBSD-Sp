@@ -1,0 +1,13 @@
+--- src.orig/sys/ufs/ufs/ufs_vnops.c	2017-09-28 13:57:48.075958861 +0300
++++ src.zad1/sys/ufs/ufs/ufs_vnops.c	2017-09-28 15:02:34.021772137 +0300
+@@ -488,8 +488,8 @@
+ 		vap->va_size = ip->i_din2->di_size;
+ 		vap->va_mtime.tv_sec = ip->i_din2->di_mtime;
+ 		vap->va_mtime.tv_nsec = ip->i_din2->di_mtimensec;
+-		vap->va_ctime.tv_sec = ip->i_din2->di_ctime;
+-		vap->va_ctime.tv_nsec = ip->i_din2->di_ctimensec;
++		vap->va_ctime.tv_sec = ip->i_din2->di_birthtime;
++		vap->va_ctime.tv_nsec = ip->i_din2->di_birthnsec;
+ 		vap->va_birthtime.tv_sec = ip->i_din2->di_birthtime;
+ 		vap->va_birthtime.tv_nsec = ip->i_din2->di_birthnsec;
+ 		vap->va_bytes = dbtob((u_quad_t)ip->i_din2->di_blocks);

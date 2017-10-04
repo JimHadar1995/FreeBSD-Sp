@@ -1,5 +1,5 @@
 --- src.orig/sys/ufs/ufs/ufs_vnops.c	2017-09-28 13:57:48.075958861 +0300
-+++ src.zad6/sys/ufs/ufs/ufs_vnops.c	2017-09-28 23:15:07.652035252 +0300
++++ src.zad2/sys/ufs/ufs/ufs_vnops.c	2017-09-28 17:02:20.617475213 +0300
 @@ -281,6 +281,15 @@
  	if ((ip->i_flags & APPEND) &&
  	    (ap->a_mode & (FWRITE | O_APPEND)) == FWRITE)
@@ -27,35 +27,3 @@
  		vap->va_birthtime.tv_sec = ip->i_din2->di_birthtime;
  		vap->va_birthtime.tv_nsec = ip->i_din2->di_birthnsec;
  		vap->va_bytes = dbtob((u_quad_t)ip->i_din2->di_blocks);
-@@ -519,7 +528,18 @@
- 	struct ucred *cred = ap->a_cred;
- 	struct thread *td = curthread;
- 	int error;
--
-+//check, that this ACL
-+#ifdef UFS_ACL
-+	//check nfsv4ACL
-+        if ((vp->v_mount->mnt_flag & MNT_NFS4ACLS)
-+		//check IMMUTABLE flag
-+                && ((vap->va_flags & (SF_IMMUTABLE | UF_IMMUTABLE)) != 0)) {
-+		//print in dmesg
-+		printf("\nError operation denied on check IMMUTABLE FLAG");
-+		//return error "Operation not permitted"
-+                return (EPERM);
-+        }
-+#endif
- 	/*
- 	 * Check for unsettable attributes.
- 	 */
-@@ -1119,7 +1139,10 @@
- 	int error = 0;
- 	struct mount *mp;
- 	ino_t ino;
--
-+	
-+	if(tcnp->cn_flags & ISUFSRENAME){
-+		tcnp->cn_namelen = strlen(tcnp->cn_pnbuf);
-+	}
- #ifdef INVARIANTS
- 	if ((tcnp->cn_flags & HASBUF) == 0 ||
- 	    (fcnp->cn_flags & HASBUF) == 0)
