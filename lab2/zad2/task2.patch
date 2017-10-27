@@ -1,0 +1,64 @@
+diff -r -u src.zad1/sys/net/if_bridge.c src.zad2/sys/net/if_bridge.c
+--- src.zad1/sys/net/if_bridge.c	2017-10-27 20:11:19.261185744 +0300
++++ src.zad2/sys/net/if_bridge.c	2017-10-27 22:13:46.621075403 +0300
+@@ -805,7 +805,8 @@
+ 		break;
+ 
+ 	case SIOCSIFMTU:
+-		if (ifr->ifr_mtu < 576) {
++		//if (ifr->ifr_mtu < 576) {
++		if (ifr->ifr_mtu < 1024) {
+ 			error = EINVAL;
+ 			break;
+ 		}
+diff -r -u src.zad1/sys/net/if_gre.c src.zad2/sys/net/if_gre.c
+--- src.zad1/sys/net/if_gre.c	2017-10-27 20:11:19.238323062 +0300
++++ src.zad2/sys/net/if_gre.c	2017-10-27 22:13:45.875107410 +0300
+@@ -229,7 +229,8 @@
+ 	switch (cmd) {
+ 	case SIOCSIFMTU:
+ 		 /* XXX: */
+-		if (ifr->ifr_mtu < 576)
++		//if (ifr->ifr_mtu < 576)
++		if (ifr->ifr_mtu < 1024)
+ 			return (EINVAL);
+ 		break;
+ 	case SIOCSIFADDR:
+diff -r -u src.zad1/sys/net/if_me.c src.zad2/sys/net/if_me.c
+--- src.zad1/sys/net/if_me.c	2017-10-27 20:11:19.242193666 +0300
++++ src.zad2/sys/net/if_me.c	2017-10-27 22:13:45.880040718 +0300
+@@ -235,7 +235,8 @@
+ 
+ 	switch (cmd) {
+ 	case SIOCSIFMTU:
+-		if (ifr->ifr_mtu < 576)
++		//if (ifr->ifr_mtu < 576)
++		if (ifr->ifr_mtu < 1024)
+ 			return (EINVAL);
+ 		ifp->if_mtu = ifr->ifr_mtu - sizeof(struct mobhdr);
+ 		return (0);
+diff -r -u src.zad1/sys/net/if_spppsubr.c src.zad2/sys/net/if_spppsubr.c
+--- src.zad1/sys/net/if_spppsubr.c	2017-10-27 20:11:19.197208898 +0300
++++ src.zad2/sys/net/if_spppsubr.c	2017-10-27 22:13:45.766104450 +0300
+@@ -1265,7 +1265,7 @@
+ #define ifr_mtu ifr_metric
+ #endif
+ 	case SIOCSIFMTU:
+-		if (ifr->ifr_mtu < 128 || ifr->ifr_mtu > sp->lcp.their_mru)
++		if (ifr->ifr_mtu < 1024 || ifr->ifr_mtu > sp->lcp.their_mru)
+ 			return (EINVAL);
+ 		ifp->if_mtu = ifr->ifr_mtu;
+ 		break;
+diff -r -u src.zad1/sys/net/if_var.h src.zad2/sys/net/if_var.h
+--- src.zad1/sys/net/if_var.h	2017-10-27 20:11:19.212187059 +0300
++++ src.zad2/sys/net/if_var.h	2017-10-27 22:13:45.815245332 +0300
+@@ -814,7 +814,8 @@
+  * 72 was chosen below because it is the size of a TCP/IP
+  * header (40) + the minimum mss (32).
+  */
+-#define	IF_MINMTU	72
++//#define	IF_MINMTU	72
++#define IF_MINMTU	1024
+ #define	IF_MAXMTU	65535
+ 
+ #define	TOEDEV(ifp)	((ifp)->if_llsoftc)
