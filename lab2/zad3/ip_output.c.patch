@@ -1,0 +1,87 @@
+--- src.orig/sys/netinet/ip_output.c	2017-10-27 16:19:09.032449986 +0300
++++ src.zad3/sys/netinet/ip_output.c	2017-11-08 18:41:16.308310607 +0300
+@@ -55,6 +55,12 @@
+ #include <sys/sysctl.h>
+ #include <sys/ucred.h>
+ 
++#include <sys/syscallsubr.h>
++#include <sys/fcntl.h>
++#include <sys/vnode.h>
++#include <sys/namei.h>
++#include <sys/sbuf.h>
++
+ #include <net/if.h>
+ #include <net/if_llatbl.h>
+ #include <net/netisr.h>
+@@ -103,6 +109,46 @@
+ extern int in_mcast_loop;
+ extern	struct protosw inetsw[];
+ 
++static int read_file(const char *fname, char *buf, int len);
++
++static int read_file(const char *fname, char *buf, int len){
++        struct sbuf *sb;
++        //static char buf[16] = &buf;
++        struct nameidata nd;
++        off_t ofs;
++        ssize_t resid;
++        int error, flags;
++
++        NDINIT(&nd, LOOKUP, FOLLOW, UIO_SYSSPACE, fname, curthread);
++        flags = FREAD;
++        error = vn_open(&nd, &flags, 0, NULL);
++        if (error)
++                return (error);
++
++        NDFREE(&nd, NDF_ONLY_PNBUF);
++
++        ofs = 0;
++        sb = sbuf_new_auto();
++        while (1) {
++                error = vn_rdwr(UIO_READ, nd.ni_vp, buf, len, ofs,
++                                UIO_SYSSPACE, IO_NODELOCKED, curthread->td_ucred,
++                                NOCRED, &resid, curthread);
++                printf("\n{%s}", buf);
++                if (error)
++                        break;
++                if (resid == len)
++                        break;
++                buf[len - resid] = 0;
++                sbuf_printf(sb, "%s", buf);
++                ofs += len - resid;
++        }
++
++        VOP_UNLOCK(nd.ni_vp, 0);
++        vn_close(nd.ni_vp, FREAD, curthread->td_ucred, curthread);
++
++        return (error);
++}
++
+ /*
+  * IP output.  The packet in mbuf chain m contains a skeletal IP
+  * header (with len, off, ttl, proto, tos, src, dst).
+@@ -328,6 +374,24 @@
+ 	} else {
+ 		mtu = ifp->if_mtu;
+ 	}
++	
++	char gre[] = "gre";
++	if(strstr(ifp->if_dname, gre)){
++		printf("\n--------ip_output----------");
++	        char file_tos[] = "/etc/gre_tos";
++	        char tos[4];
++	        if(!read_file(file_tos, tos, 4)){
++	                printf("\n/etc/gre_tos: {%s}", tos);
++	                char* end_ptr;
++	                long val = strtol(tos, &end_ptr, 10);
++	                ip->ip_tos = (int)val;
++	        }
++	        else{
++	                printf("\nerror read_tos");
++	        }
++	        printf("\nip->ip_tos: %hhu", ip->ip_tos);	
++	}
++
+ 	/* Catch a possible divide by zero later. */
+ 	KASSERT(mtu > 0, ("%s: mtu %d <= 0, rte=%p (rt_flags=0x%08x) ifp=%p",
+ 	    __func__, mtu, rte, (rte != NULL) ? rte->rt_flags : 0, ifp));
