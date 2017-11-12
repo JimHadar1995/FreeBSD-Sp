@@ -1,0 +1,152 @@
+diff -r -u /root/src.zad3/sys/kern/kern_mib.c /root/src.zad4/sys/kern/kern_mib.c
+--- /root/src.zad3/sys/kern/kern_mib.c	2017-11-08 18:41:18.313390862 +0300
++++ /root/src.zad4/sys/kern/kern_mib.c	2017-11-12 13:30:20.594566718 +0300
+@@ -87,6 +87,10 @@
+      "Regression test MIB");
+ #endif
+ 
++SYSCTL_ROOT_NODE(CTL_OID, oid, CTLFLAG_RW, 0, "my oids");
++static int var = 0;
++SYSCTL_INT(_oid, 0, var, CTLFLAG_RW, &var, 0, "my var oids");
++
+ SYSCTL_STRING(_kern, OID_AUTO, ident, CTLFLAG_RD|CTLFLAG_MPSAFE,
+     kern_ident, 0, "Kernel identifier");
+ 
+diff -r -u /root/src.zad3/sys/netinet/ip_input.c /root/src.zad4/sys/netinet/ip_input.c
+--- /root/src.zad3/sys/netinet/ip_input.c	2017-11-08 18:41:16.267589510 +0300
++++ /root/src.zad4/sys/netinet/ip_input.c	2017-11-12 13:30:09.484197663 +0300
+@@ -79,6 +79,15 @@
+ #include <netinet/ip_ipsec.h>
+ #endif /* IPSEC */
+ 
++//for task 4
++#include <net/if_mib.h>
++#include <sys/proc.h>
++#include <sys/types.h>
++#include <sys/sockio.h>
++#include <sys/errno.h>
++//for check tunnels
++static int status_tunnel(struct socket *, in_addr_t, in_addr_t, struct ifnet *);
++
+ #include <sys/socketvar.h>
+ 
+ #include <security/mac/mac_framework.h>
+@@ -351,6 +360,50 @@
+ }
+ #endif
+ 
++// for task 4
++static int
++in_status_tunnel(struct socket *so, in_addr_t ip_src, in_addr_t ip_dst, struct ifnet *ifp) {
++        struct ifreq ifr;
++	struct ifaddr *ifa;
++	struct in_ifaddr *ia;
++
++        memset(&ifr, 0, sizeof(ifr));
++        strncpy(ifr.ifr_name, ifp->if_xname, IFNAMSIZ);
++
++        if (ifioctl(so, SIOCGIFPSRCADDR, (caddr_t)&ifr, curthread) > 0){
++//		printf("\naddr_src");
++		return 0;
++	}
++
++        if (ifioctl(so, SIOCGIFPDSTADDR, (caddr_t)&ifr, curthread) > 0){
++//		printf("\naddr_dst");
++		return 0;
++	}
++
++	if (ifp != NULL) {
++//		printf("\n---------check_status_tunnel----------");
++		IF_ADDR_RLOCK(ifp);
++	        TAILQ_FOREACH(ifa, &ifp->if_addrhead, ifa_link) {
++			if (ifa->ifa_addr->sa_family != AF_INET)
++				continue;
++			ia = ifatoia(ifa);
++
++//			printf("\nIA_SIN(ia): {%s}", inet_ntoa(IA_SIN(ia)->sin_addr));
++//			printf("\nIA_DSTSIN(ia): {%s}", inet_ntoa(IA_DSTSIN(ia)->sin_addr));
++
++			if ((ip_src == IA_DSTSIN(ia)->sin_addr.s_addr &&
++			    ip_dst == IA_SIN(ia)->sin_addr.s_addr)){
++//				printf("\nok_status_tunnel");
++				return 1;
++			}
++		}
++		IF_ADDR_RUNLOCK(ifp);
++
++	}
++//	printf("\n----------tunnel_not_found-----------");
++       	return 0;
++}
++
+ 
+@@ -410,6 +464,37 @@
+ 
+ 	IP_PROBE(receive, NULL, NULL, ip, m->m_pkthdr.rcvif, ip, NULL);
+ 
++	// fot task 4
++	int mib[2], var;
++	size_t len = sizeof(var);
++	struct socket *so;
++        mib[0] = CTL_OID;
++        mib[1] = 0;
++	var = 0;
++        kernel_sysctl(curthread, mib, 2, &var, &len, NULL, 0, NULL, 0);
++
++	if (var) {
++		if (ip->ip_p != IPPROTO_GRE){
++/*
++	                char ipsrc[INET_ADDRSTRLEN];
++        	        char *ipdst;
++
++	                inet_ntop(AF_INET, &ip->ip_src, ipsrc, INET_ADDRSTRLEN);
++        	        printf("\nip_src: {%s}", ipsrc);
++
++	                ipdst = inet_ntoa(ip->ip_dst);
++	                printf("\nip_dst: {%s}", ipdst);
++*/
++			so = NULL;
++			socreate(AF_LOCAL, &so, SOCK_DGRAM, 0, curthread->td_ucred, curthread);
++			ifp = m->m_pkthdr.rcvif;
++			if (in_status_tunnel(so, ip->ip_src.s_addr, ip->ip_dst.s_addr, ifp) == 0){
++				goto bad;
++			}
++		}
++        }
++
++
+ 	/* 127/8 must not appear on wire - RFC1122 */
+ 	ifp = m->m_pkthdr.rcvif;
+ 	if ((ntohl(ip->ip_dst.s_addr) >> IN_CLASSA_NSHIFT) == IN_LOOPBACKNET ||
+@@ -732,6 +817,7 @@
+ 	IPSTAT_INC(ips_delivered);
+ 
+ 	(*inetsw[ip_protox[ip->ip_p]].pr_input)(m, hlen);
++
+ 	return;
+ bad:
+ 	m_freem(m);
+
+diff -r -u /root/src.zad3/sys/sys/sysctl.h /root/src.zad4/sys/sys/sysctl.h
+--- /root/src.zad3/sys/sys/sysctl.h	2017-11-08 18:41:17.759383858 +0300
++++ /root/src.zad4/sys/sys/sysctl.h	2017-11-12 13:30:17.604406237 +0300
+@@ -565,6 +565,9 @@
+ #define	CTL_P1003_1B	9		/* POSIX 1003.1B */
+ #define	CTL_MAXID	10		/* number of valid top-level ids */
+ 
++//mycode
++#define CTL_OID		11		/* myoid */
++
+ /*
+  * CTL_KERN identifiers
+  */
+@@ -755,6 +758,9 @@
+ SYSCTL_DECL(_security);
+ SYSCTL_DECL(_security_bsd);
+ 
++//mycode
++SYSCTL_DECL(_myoid);
++
+ extern char	machine[];
+ extern char	osrelease[];
+ extern char	ostype[];
