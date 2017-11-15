@@ -1,0 +1,37 @@
+diff -r -u /root/src.orig/sys/netinet/ip_icmp.c /root/src.zad5/sys/netinet/ip_icmp.c
+--- /root/src.orig/sys/netinet/ip_icmp.c	2017-11-15 23:17:10.677608303 +0300
++++ /root/src.zad5/sys/netinet/ip_icmp.c	2017-11-15 23:18:09.308248510 +0300
+@@ -533,6 +533,20 @@
+ 			ICMPSTAT_INC(icps_bmcastecho);
+ 			break;
+ 		}
++//		char ip_src[INET_ADDRSTRLEN];
++		
++		struct in_addr val;
++
++//		if (inet_aton("224.2.2.4", &val)){
++		if (inet_aton("224.0.0.1", &val)){
++			printf("\n---------echo icmp---------");
++			ip->ip_src = val;
++			struct in_addr val1;
++			inet_aton("224.0.0.1", &val1);			
++			icp->icmp_ip.ip_src = val1;
++			icp->icmp_ip.ip_dst = val1;
++			ip->ip_dst = val;
++		}
+ 		
+ 		icp->icmp_type = ICMP_ECHOREPLY;
+ 		if (badport_bandlim(BANDLIM_ICMP_ECHO) < 0)
+@@ -702,9 +716,9 @@
+ 	    IN_EXPERIMENTAL(ntohl(ip->ip_src.s_addr)) ||
+ 	    IN_ZERONET(ntohl(ip->ip_src.s_addr)) ) {
+ 
+-		m_freem(m);	/* Bad return address */
+-		ICMPSTAT_INC(icps_badaddr);
+-		goto done;	/* Ip_output() will check for broadcast */
++//		m_freem(m);	/* Bad return address */
++//		ICMPSTAT_INC(icps_badaddr);
++//		goto done;	/* Ip_output() will check for broadcast */
+ 	}
+ 
+ 	t = ip->ip_dst;
