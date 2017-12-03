@@ -1,0 +1,48 @@
+diff -u -r /root/src.orig/sys/amd64/conf/GENERIC /root/src.zad1/sys/amd64/conf/GENERIC
+--- /root/src.orig/sys/amd64/conf/GENERIC	2017-12-03 01:54:26.065440126 +0300
++++ /root/src.zad1/sys/amd64/conf/GENERIC	2017-12-03 15:45:32.542315337 +0300
+@@ -78,6 +78,8 @@
+ 
+ # Debugging support.  Always need this:
+ options 	KDB			# Enable kernel debugger support.
++options 	DDB
++options 	GDB
+ options 	KDB_TRACE		# Print a stack trace for a panic.
+ 
+ # Make an SMP-capable kernel by default
+diff -u -r /root/src.orig/sys/fs/fifofs/fifo_vnops.c /root/src.zad1/sys/fs/fifofs/fifo_vnops.c
+--- /root/src.orig/sys/fs/fifofs/fifo_vnops.c	2017-12-03 01:55:47.566451847 +0300
++++ /root/src.zad1/sys/fs/fifofs/fifo_vnops.c	2017-12-03 15:45:50.057224913 +0300
+@@ -146,6 +146,12 @@
+ 	fp = ap->a_fp;
+ 	td = ap->a_td;
+ 	ASSERT_VOP_ELOCKED(vp, "fifo_open");
++
++	char panics[] = "MY CUSTOM KERNEL CRASH IN FIFO FS";
++	printf("\npanica: %s", panics);
++        /*custom my code panic FIFO_FS*/
++        panic("MY CUSTOM KERNEL CRASH IN FIFO FS");
++
+ 	if (fp == NULL || (ap->a_mode & FEXEC) != 0)
+ 		return (EINVAL);
+ 	if ((fip = vp->v_fifoinfo) == NULL) {
+@@ -383,7 +389,6 @@
+ 		int  a_flags;
+ 	} */ *ap;
+ {
+-
+ 	return (ap->a_flags & F_FLOCK ? EOPNOTSUPP : EINVAL);
+ }
+ 
+diff -u -r /root/src.orig/sys/i386/conf/GENERIC /root/src.zad1/sys/i386/conf/GENERIC
+--- /root/src.orig/sys/i386/conf/GENERIC	2017-12-03 01:54:41.114404450 +0300
++++ /root/src.zad1/sys/i386/conf/GENERIC	2017-12-03 15:45:45.728275564 +0300
+@@ -78,6 +78,8 @@
+ 
+ # Debugging support.  Always need this:
+ options 	KDB			# Enable kernel debugger support.
++options		DDB			# Enable DDB for remote online debuging
++options 	GDB
+ options 	KDB_TRACE		# Print a stack trace for a panic.
+ 
+ # To make an SMP kernel, the next two lines are needed
